@@ -1,0 +1,148 @@
+﻿@using Exercise2.Models
+@using Exercise2.Services
+@inject IEmailUniquenessService EmailService
+
+<EditForm EditContext="_editContext" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+
+    @if (!string.IsNullOrEmpty(_formError))
+    {
+        <div class="alert alert-danger">@_formError</div>
+    }
+
+    @if (_submitSuccess)
+    {
+        <div class="alert alert-success">Form submitted successfully!</div>
+    }
+
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+        <input class="form-control"
+               value="@_copy.Name"
+               @onchange="OnNameChanged"
+               placeholder="Enter full name" />
+        <ValidationMessage For="@(() => _copy.Name)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Address <span class="text-danger">*</span></label>
+        <InputText class="form-control" @bind-Value="_copy.Address" placeholder="Enter address" />
+        <ValidationMessage For="@(() => _copy.Address)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Age <span class="text-danger">*</span></label>
+        <InputNumber class="form-control" @bind-Value="_copy.Age" placeholder="Enter age" />
+        <ValidationMessage For="@(() => _copy.Age)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+        <InputText class="form-control" @bind-Value="_copy.Email" placeholder="Enter email" />
+        <ValidationMessage For="@(() => _copy.Email)" />
+        @if (_checkingEmail)
+        {
+            <small class="text-muted">Checking email availability...</small>
+        }
+        @if (_emailTaken)
+        {
+            <small class="text-danger">This email is already registered.</small>
+        }
+    </div>
+
+    <button class="btn btn-primary"
+            type="submit"
+            disabled="@(_isSubmitting || _checkingEmail)">
+        @if (_isSubmitting)
+        {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        }
+        @SubmitButtonText
+    </button>
+</EditForm>
+
+@code {
+    [Parameter] public UserModel Model { get; set; } = default!;
+    [Parameter] public EventCallback<UserModel> OnSubmit { get; set; }
+    [Parameter] public string SubmitButtonText { get; set; } = "Submit";
+    [Parameter] public bool IsEditMode { get; set; } = false;
+
+    private UserModel _copy = new();
+    private EditContext _editContext = default!;
+    private bool _isSubmitting = false;
+    private bool _checkingEmail = false;
+    private bool _emailTaken = false;
+    private bool _submitSuccess = false;
+    private string _formError = string.Empty;
+    private CancellationTokenSource _emailCts = new();
+
+    protected override void OnParametersSet()
+    {
+        _copy = new UserModel
+        {
+            Name = Model.Name,
+            Address = Model.Address,
+            Age = Model.Age,
+            Email = Model.Email
+        };
+        _editContext = new EditContext(_copy);
+    }
+
+    private void OnNameChanged(ChangeEventArgs e)
+    {
+        _copy.Name = e.Value?.ToString() ?? string.Empty;
+        _editContext.NotifyFieldChanged(FieldIdentifier.Create(() => _copy.Name));
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (_isSubmitting) return;
+
+        _formError = string.Empty;
+        _emailTaken = false;
+        _submitSuccess = false;
+
+        _checkingEmail = true;
+        try
+        {
+            _emailCts.Cancel();
+            _emailCts = new CancellationTokenSource();
+            bool isUnique = await EmailService.IsEmailUniqueAsync(_copy.Email, _emailCts.Token);
+            if (!isUnique)
+            {
+                _emailTaken = true;
+                return;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            _formError = $"Could not verify email: {ex.Message}";
+            return;
+        }
+        finally
+        {
+            _checkingEmail = false;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            await OnSubmit.InvokeAsync(_copy);
+            _submitSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            _formError = $"Submission failed: {ex.Message}";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

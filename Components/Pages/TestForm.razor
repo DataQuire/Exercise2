@@ -1,0 +1,153 @@
+﻿@page "/test-form"
+@using Exercise2.Models
+@using Exercise2.Services
+@inject IEmailUniquenessService EmailService
+@rendermode InteractiveServer
+
+<div class="container py-4" style="max-width: 700px;">
+    <h3 class="mb-1">User Form Demo</h3>
+    <p class="text-muted mb-4">
+        Mode: <strong>@(isEditMode ? "Edit" : "Create")</strong> &nbsp;
+        <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleMode">Switch Mode</button>
+    </p>
+
+    @if (isEditMode)
+    {
+        @if (selectedUser == null)
+        {
+            @if (submittedUsers.Count == 0)
+            {
+                <div class="alert alert-warning">
+                    No submitted users yet. Switch to Create mode and submit some first.
+                </div>
+            }
+            else
+            {
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header fw-semibold">Select a user to edit</div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Age</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var u in submittedUsers)
+                                {
+                                    <tr>
+                                        <td>@u.Name</td>
+                                        <td>@u.Email</td>
+                                        <td>@u.Age</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    @onclick="() => SelectUserForEdit(u)">
+                                                Edit
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <button class="btn btn-sm btn-outline-secondary mb-3" @onclick="() => selectedUser = null">
+                ← Back to list
+            </button>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <UserForm Model="selectedUser"
+                              OnSubmit="HandleSubmit"
+                              SubmitButtonText="Save Changes"
+                              IsEditMode="true" />
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <UserForm Model="newUser"
+                          OnSubmit="HandleSubmit"
+                          SubmitButtonText="Create User"
+                          IsEditMode="false" />
+            </div>
+        </div>
+    }
+
+    @if (lastSubmitted != null)
+    {
+        <div style="position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; min-width: 300px;">
+            <div class="alert alert-success shadow mb-0">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h6 class="alert-heading mb-1">✅ @(isEditMode ? "Updated" : "Created") Successfully</h6>
+                    <button type="button" class="btn-close ms-2" @onclick="() => lastSubmitted = null"></button>
+                </div>
+                <hr class="my-2" />
+                <p class="mb-1"><b>Name:</b> @lastSubmitted.Name</p>
+                <p class="mb-1"><b>Address:</b> @lastSubmitted.Address</p>
+                <p class="mb-1"><b>Age:</b> @lastSubmitted.Age</p>
+                <p class="mb-0"><b>Email:</b> @lastSubmitted.Email</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isEditMode = false;
+    private UserModel newUser = new();
+    private UserModel? selectedUser = null;
+    private UserModel? lastSubmitted = null;
+
+    private List<UserModel> submittedUsers = new();
+
+    private void ToggleMode()
+    {
+        isEditMode = !isEditMode;
+        selectedUser = null;
+        lastSubmitted = null;
+        newUser = new();
+    }
+
+    private void SelectUserForEdit(UserModel user)
+    {
+        selectedUser = user;
+        lastSubmitted = null;
+    }
+
+    private async Task HandleSubmit(UserModel model)
+    {
+        await Task.Delay(500);
+
+        if (isEditMode && selectedUser != null)
+        {
+            var index = submittedUsers.IndexOf(selectedUser);
+            if (index >= 0)
+            {
+                if (!string.Equals(selectedUser.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    EmailService.UnregisterEmail(selectedUser.Email);
+                    EmailService.RegisterEmail(model.Email);
+                }
+                submittedUsers[index] = model;
+            }
+            selectedUser = null;
+        }
+        else
+        {
+            submittedUsers.Add(model);
+            EmailService.RegisterEmail(model.Email);
+            newUser = new();
+        }
+
+        lastSubmitted = model;
+    }
+}
