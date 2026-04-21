@@ -12,7 +12,7 @@ A Blazor Server application demonstrating a reusable `UserForm` component that c
 ### 1. Clone the repository
 
 ```bash
-git clone 
+git clone https://github.com/DataQuire/Exercise2.git
 cd Exercise2
 ```
 
