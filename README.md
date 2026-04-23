@@ -30,21 +30,21 @@ Open your browser and go to: https://localhost:<port>/test-form
 ## Project Structure
 Exercise2/
 ├── Components/
-│   ├── Layout/
-│   │   └── MainLayout.razor        # App layout
-│   ├── Pages/
-│   │   └── TestForm.razor          # Sample page demonstrating the component
-│   ├── App.razor
-│   ├── Routes.razor
-│   ├── _Imports.razor
-│   └── UserForm.razor              # Reusable form component
+├── Layout/
+│ └── MainLayout.razor # App layout
+├── Pages/
+│ └── TestForm.razor # Sample page demonstrating the component
+├── App.razor
+├── Routes.razor
+├── _Imports.razor
+├── UserForm.razor # Reusable form component
 ├── Models/
-│   └── UserModel.cs                # Form model with DataAnnotations
+│ └── UserModel.cs # Form model with DataAnnotations
 ├── Services/
-│   ├── IEmailUniquenessService.cs  # Email uniqueness interface
-│   └── MockEmailUniquenessService.cs # Mocked email uniqueness service
+│ ├── IEmailUniquenessService.cs # Email uniqueness interface
+│ └── MockEmailUniquenessService.cs # Mocked service
 ├── wwwroot/
-│   └── app.css                     # Custom styles
+│ └── app.css # Custom styles
 └── Program.cs
 
 ## Features
